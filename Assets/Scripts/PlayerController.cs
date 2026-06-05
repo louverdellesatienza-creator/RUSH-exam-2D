@@ -3,19 +3,19 @@
 public class PlayerController : MonoBehaviour
 {
     public float moveSpeed = 7f;
-    public float jumpForce = 10f;
+    public float jumpForce = 12f;
     public Transform groundCheck;
     public float groundCheckRadius = 0.5f;
     public LayerMask groundLayer;
 
     private Rigidbody2D rb;
     private bool isGrounded;
-    private Vector3 originalScale;  // ← Store original size
+    private Vector3 originalScale;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        originalScale = transform.localScale;  // ← Save original scale
+        originalScale = transform.localScale;
     }
 
     void Update()
@@ -24,7 +24,7 @@ public class PlayerController : MonoBehaviour
         float moveInput = Input.GetAxisRaw("Horizontal");
         rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
 
-        // Flip sprite - USING ORIGINAL SCALE to prevent growing
+        // Flip sprite using original scale
         if (moveInput > 0)
             transform.localScale = new Vector3(Mathf.Abs(originalScale.x), originalScale.y, originalScale.z);
         else if (moveInput < 0)
@@ -37,6 +37,7 @@ public class PlayerController : MonoBehaviour
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            Debug.Log("Jumped!");
         }
     }
 
