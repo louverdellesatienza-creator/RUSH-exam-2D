@@ -1,45 +1,23 @@
-using UnityEngine;
-using UnityEngine.UI;
+﻿using UnityEngine;
 
 public class Door : MonoBehaviour
 {
-    private bool isUnlocked = false;
-    public GameObject lockedMessage;
-    public Text lockedText;
-
-    void Start()
-    {
-        lockedMessage.SetActive(false);
-    }
-
-    public void UnlockDoor()
-    {
-        isUnlocked = true;
-        // Optional: Change door color or add particles
-        GetComponent<SpriteRenderer>().color = Color.green;
-    }
-
     void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
         {
-            if (isUnlocked || LevelManager.Instance.CanCompleteLevel())
+            // ✅ Use the public method, NOT private variable
+            int collected = LevelManager.Instance.GetCollectedCount();
+
+            if (collected >= 1)
             {
-                LevelManager.Instance.CompleteLevel();
+                Debug.Log("Level Complete! You passed!");
+                LevelManager.Instance.ShowLevelComplete();
             }
             else
             {
-                // Show locked message
-                StartCoroutine(ShowLockedMessage());
+                Debug.Log($"Need at least 1 item! You have {collected}");
             }
         }
-    }
-
-    System.Collections.IEnumerator ShowLockedMessage()
-    {
-        lockedText.text = $"Need {LevelManager.Instance.minRequiredToPass} item! Found: {LevelManager.Instance.collectedCount}";
-        lockedMessage.SetActive(true);
-        yield return new WaitForSeconds(2f);
-        lockedMessage.SetActive(false);
     }
 }
