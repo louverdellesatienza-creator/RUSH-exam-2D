@@ -7,39 +7,49 @@ public class LevelManager : MonoBehaviour
 {
     public static LevelManager Instance;
 
-    [Header("Level Settings")]
     public int totalCollectibles = 3;
-    public string nextLevelName = "Level2";  // Change to your next level scene name
-    public int minItemsForNextLevel = 3;     // Need all 3 to unlock next level
+    public string nextLevelName = "Level2";
+    public int minItemsForNextLevel = 3;
 
-    [Header("UI References")]
     public TextMeshProUGUI collectibleText;
-    public GameObject levelCompletePanel;
+    public GameObject canvas_LevelComplete;
     public TextMeshProUGUI itemsText;
     public TextMeshProUGUI ratingText;
+    public TextMeshProUGUI timeText;
     public GameObject star1, star2, star3;
     public Button nextLevelButton;
 
-    [Header("Internal")]
     private int collectedCount = 0;
     private bool levelCompleted = false;
 
     void Awake()
     {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
     }
 
     void Start()
     {
+        collectedCount = 0;
+        levelCompleted = false;
         UpdateUI();
-        levelCompletePanel.SetActive(false);
 
-        // Disable next level button if not all items collected
+        if (canvas_LevelComplete != null)
+            canvas_LevelComplete.SetActive(false);
+
         if (nextLevelButton != null)
             nextLevelButton.interactable = false;
+
+        // START THE TIMER!
+        if (TimeManager.Instance != null)
+        {
+            TimeManager.Instance.StartLevel();
+            Debug.Log("LevelManager: Timer started");
+        }
+        else
+        {
+            Debug.LogError("TimeManager.Instance is NULL!");
+        }
     }
 
     public void CollectItem()
@@ -49,19 +59,18 @@ public class LevelManager : MonoBehaviour
         collectedCount++;
         UpdateUI();
 
-        // Check if all items collected - update next level button
-        if (collectedCount >= totalCollectibles)
-        {
-            if (nextLevelButton != null)
-                nextLevelButton.interactable = true;
-            Debug.Log("All items collected! Door unlocked!");
-        }
+        if (collectedCount >= totalCollectibles && nextLevelButton != null)
+            nextLevelButton.interactable = true;
     }
 
     void UpdateUI()
     {
         if (collectibleText != null)
             collectibleText.text = $"Items: {collectedCount}/{totalCollectibles}";
+
+        if (star1 != null) star1.SetActive(collectedCount >= 1);
+        if (star2 != null) star2.SetActive(collectedCount >= 2);
+        if (star3 != null) star3.SetActive(collectedCount >= 3);
     }
 
     public void CompleteLevel()
@@ -69,74 +78,47 @@ public class LevelManager : MonoBehaviour
         if (levelCompleted) return;
 
         levelCompleted = true;
-        Time.timeScale = 0f;  // Pause game
 
-        // Show panel
-        levelCompletePanel.SetActive(true);
+        if (TimeManager.Instance != null)
+            TimeManager.Instance.CompleteLevel(SceneManager.GetActiveScene().name);
 
-        // Update items text
+        Time.timeScale = 0f;
+
+        if (canvas_LevelComplete != null)
+            canvas_LevelComplete.SetActive(true);
+
         if (itemsText != null)
-            itemsText.text = $"Items Collected: {collectedCount}/{totalCollectibles}";
+            itemsText.text = $"Items: {collectedCount}/{totalCollectibles}";
 
-        // Update stars based on collected count
-        UpdateStars();
+        if (timeText != null && TimeManager.Instance != null)
+        {
+            float time = TimeManager.Instance.currentTime;
+            int minutes = Mathf.FloorToInt(time / 60);
+            int seconds = Mathf.FloorToInt(time % 60);
+            timeText.text = $"Time: {minutes:00}:{seconds:00}";
+        }
 
-        // Update rating text
-        UpdateRating();
+        string rating = collectedCount switch
+        {
+            3 => "PERFECT! (A+)",
+            2 => "GOOD! (B)",
+            1 => "PASSING (C)",
+            _ => "NO STARS (F)"
+        };
 
-        // Enable/disable next level button based on collection
+        if (ratingText != null) ratingText.text = rating;
+
         if (nextLevelButton != null)
-        {
-            bool canGoNext = (collectedCount >= minItemsForNextLevel);
-            nextLevelButton.interactable = canGoNext;
-
-            // Change button color if disabled
-            var colors = nextLevelButton.colors;
-            colors.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.5f);
-            nextLevelButton.colors = colors;
-        }
+            nextLevelButton.interactable = (collectedCount >= minItemsForNextLevel);
     }
 
-    void UpdateStars()
-    {
-        // Show stars based on collected count
-        if (star1 != null) star1.SetActive(collectedCount >= 1);
-        if (star2 != null) star2.SetActive(collectedCount >= 2);
-        if (star3 != null) star3.SetActive(collectedCount >= 3);
-    }
-
-    void UpdateRating()
-    {
-        string rating = "";
-        string grade = "";
-
-        switch (collectedCount)
-        {
-            case 3:
-                rating = "⭐⭐⭐ PERFECT!";
-                grade = "A+";
-                break;
-            case 2:
-                rating = "⭐⭐ GOOD!";
-                grade = "B";
-                break;
-            case 1:
-                rating = "⭐ PASSING";
-                grade = "C";
-                break;
-            default:
-                rating = "⭐ NO STARS";
-                grade = "F - TRY AGAIN!";
-                break;
-        }
-
-        if (ratingText != null)
-            ratingText.text = $"{rating}\nGrade: {grade}";
-    }
-
-    // Button Methods
     public void ReplayLevel()
     {
+        if (TimeManager.Instance != null)
+            TimeManager.Instance.AddRetry();
+
+        collectedCount = 0;
+        levelCompleted = false;
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
@@ -148,25 +130,11 @@ public class LevelManager : MonoBehaviour
             Time.timeScale = 1f;
             SceneManager.LoadScene(nextLevelName);
         }
-        else
-        {
-            Debug.Log($"Need {minItemsForNextLevel} items to unlock next level! Currently: {collectedCount}");
-        }
     }
 
     public void QuitToMenu()
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene("MainMenu");
-    }
-
-    public void QuitGame()
-    {
-        Application.Quit();
-    }
-
-    public int GetCollectedCount()
-    {
-        return collectedCount;
     }
 }

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class Obstacle : MonoBehaviour
@@ -7,7 +7,9 @@ public class Obstacle : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Player"))
         {
-            Debug.Log("Hit obstacle! Resetting level...");
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.AddRetry();
+
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }
