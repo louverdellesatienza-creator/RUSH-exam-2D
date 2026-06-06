@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 
 public class TimerUI : MonoBehaviour
@@ -15,7 +15,7 @@ public class TimerUI : MonoBehaviour
     {
         if (TimeManager.Instance != null)
         {
-            float time = TimeManager.Instance.currentTime;
+            float time = TimeManager.Instance.currentLevelTime;  // ← Changed from currentTime to currentLevelTime
             int minutes = Mathf.FloorToInt(time / 60);
             int seconds = Mathf.FloorToInt(time % 60);
             int milli = Mathf.FloorToInt((time * 100) % 100);

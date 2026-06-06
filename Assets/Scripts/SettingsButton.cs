@@ -3,14 +3,15 @@ using UnityEngine.UI;
 
 public class SettingsButton : MonoBehaviour
 {
+    private Button button;
+
     void Start()
     {
-        // Get the button component
-        Button button = GetComponent<Button>();
+        button = GetComponent<Button>();
 
-        // Add click listener
         if (button != null)
         {
+            button.onClick.RemoveAllListeners();
             button.onClick.AddListener(OpenSettings);
         }
     }
@@ -19,14 +20,14 @@ public class SettingsButton : MonoBehaviour
     {
         Debug.Log("Settings button clicked!");
 
-        // Find and open the settings panel
-        if (SettingsInfoManager.Instance != null)
+        // Call LevelManager to open settings
+        if (LevelManager.Instance != null)
         {
-            SettingsInfoManager.Instance.ShowPanel();
+            LevelManager.Instance.OpenSettings();
         }
         else
         {
-            Debug.LogWarning("SettingsInfoManager not found in scene!");
+            Debug.LogError("LevelManager.Instance is NULL!");
         }
     }
 }

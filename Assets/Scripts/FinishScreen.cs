@@ -28,11 +28,11 @@ public class FinishScreen : MonoBehaviour
             return;
         }
 
-        // Get times from TimeManager
-        float totalTime = TimeManager.Instance.GetTotalTime();
-        int totalRetries = TimeManager.Instance.retries;
-        float level1Time = TimeManager.Instance.level1Time;
-        float level2Time = TimeManager.Instance.level2Time;
+        // Get times from TimeManager using correct method names
+        float totalTime = TimeManager.Instance.GetTotalGameTime();  // ← Fixed
+        int totalRetries = TimeManager.Instance.GetTotalRetries();  // ← Fixed
+        float level1Time = TimeManager.Instance.GetLevel1Time();    // ← Fixed
+        float level2Time = TimeManager.Instance.GetLevel2Time();    // ← Fixed
 
         // Display times
         if (totalTimeText != null)
@@ -48,7 +48,7 @@ public class FinishScreen : MonoBehaviour
             retryCountText.text = $"TOTAL RETRIES: {totalRetries}";
 
         // Calculate and display grade
-        string grade = TimeManager.Instance.GetGrade();
+        string grade = TimeManager.Instance.GetGrade();  // ← Fixed
         if (finalGradeText != null)
             finalGradeText.text = $"FINAL GRADE: {grade}";
 
@@ -93,7 +93,7 @@ public class FinishScreen : MonoBehaviour
     public void PlayAgain()
     {
         if (TimeManager.Instance != null)
-            TimeManager.Instance.NewGame();  // ← Changed from ResetForNewGame to NewGame
+            TimeManager.Instance.NewGame();  // ← Fixed
 
         SceneManager.LoadScene("MainMenu");
     }

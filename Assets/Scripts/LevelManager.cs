@@ -1,16 +1,18 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class LevelManager : MonoBehaviour
 {
     public static LevelManager Instance;
 
+    [Header("Level Settings")]
     public int totalCollectibles = 3;
     public string nextLevelName = "Level2";
     public int minItemsForNextLevel = 3;
 
+    [Header("UI References")]
     public TextMeshProUGUI collectibleText;
     public GameObject canvas_LevelComplete;
     public TextMeshProUGUI itemsText;
@@ -18,18 +20,32 @@ public class LevelManager : MonoBehaviour
     public TextMeshProUGUI timeText;
     public GameObject star1, star2, star3;
     public Button nextLevelButton;
+    public Button replayButton;
+    public Button quitButton;
+
+    [Header("Player References")]
+    public GameObject playerBoy;
+    public GameObject playerGirl;
+
+    [Header("Settings Panel")]
+    public GameObject settingsCanvas;  // Drag Canvas_Settings here (starts disabled)
 
     private int collectedCount = 0;
     private bool levelCompleted = false;
+    private bool isSettingsOpen = false;
 
     void Awake()
     {
-        if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
     }
 
     void Start()
     {
+        Debug.Log("=== LEVEL MANAGER START ===");
+
         collectedCount = 0;
         levelCompleted = false;
         UpdateUI();
@@ -40,16 +56,64 @@ public class LevelManager : MonoBehaviour
         if (nextLevelButton != null)
             nextLevelButton.interactable = false;
 
-        // START THE TIMER!
+        // Make sure settings panel starts HIDDEN (not auto-show)
+        if (settingsCanvas != null)
+            settingsCanvas.SetActive(false);
+
+        // Apply selected character from SettingsScene
+        ApplySelectedCharacter();
+
+        // Start the timer
         if (TimeManager.Instance != null)
+            TimeManager.Instance.StartLevel(SceneManager.GetActiveScene().name);
+
+        Debug.Log("Level 1 started - Settings panel will NOT auto-show. Use ⚙️ button to open.");
+    }
+
+    void ApplySelectedCharacter()
+    {
+        string selectedCharacter = PlayerPrefs.GetString("SelectedCharacter", "Boy");
+        Debug.Log($"Applying character: {selectedCharacter}");
+
+        if (playerBoy != null)
+            playerBoy.SetActive(selectedCharacter == "Boy");
+
+        if (playerGirl != null)
+            playerGirl.SetActive(selectedCharacter == "Girl");
+    }
+
+    public void OpenSettings()
+    {
+        if (levelCompleted) return;
+
+        Debug.Log("Opening settings panel");
+        isSettingsOpen = true;
+        Time.timeScale = 0f; // Pause game
+
+        if (settingsCanvas != null)
         {
-            TimeManager.Instance.StartLevel();
-            Debug.Log("LevelManager: Timer started");
+            settingsCanvas.SetActive(true);
+            Debug.Log("Settings panel opened");
         }
         else
         {
-            Debug.LogError("TimeManager.Instance is NULL!");
+            Debug.LogError("Settings Canvas is NULL! Assign it in Inspector.");
         }
+    }
+
+    public void CloseSettings()
+    {
+        Debug.Log("Closing settings panel");
+        isSettingsOpen = false;
+        Time.timeScale = 1f; // Resume game
+
+        if (settingsCanvas != null)
+        {
+            settingsCanvas.SetActive(false);
+        }
+
+        // Re-apply character in case it was changed
+        ApplySelectedCharacter();
     }
 
     public void CollectItem()
@@ -59,8 +123,14 @@ public class LevelManager : MonoBehaviour
         collectedCount++;
         UpdateUI();
 
-        if (collectedCount >= totalCollectibles && nextLevelButton != null)
-            nextLevelButton.interactable = true;
+        Debug.Log($"Collected: {collectedCount}/{totalCollectibles}");
+
+        if (collectedCount >= totalCollectibles)
+        {
+            if (nextLevelButton != null)
+                nextLevelButton.interactable = true;
+            Debug.Log("All items collected! Door unlocked!");
+        }
     }
 
     void UpdateUI()
@@ -68,6 +138,7 @@ public class LevelManager : MonoBehaviour
         if (collectibleText != null)
             collectibleText.text = $"Items: {collectedCount}/{totalCollectibles}";
 
+        // Update stars
         if (star1 != null) star1.SetActive(collectedCount >= 1);
         if (star2 != null) star2.SetActive(collectedCount >= 2);
         if (star3 != null) star3.SetActive(collectedCount >= 3);
@@ -92,22 +163,25 @@ public class LevelManager : MonoBehaviour
 
         if (timeText != null && TimeManager.Instance != null)
         {
-            float time = TimeManager.Instance.currentTime;
-            int minutes = Mathf.FloorToInt(time / 60);
-            int seconds = Mathf.FloorToInt(time % 60);
+            float t = TimeManager.Instance.currentLevelTime;
+            int minutes = Mathf.FloorToInt(t / 60);
+            int seconds = Mathf.FloorToInt(t % 60);
             timeText.text = $"Time: {minutes:00}:{seconds:00}";
         }
 
+        // Update rating based on collected items
         string rating = collectedCount switch
         {
-            3 => "PERFECT! (A+)",
-            2 => "GOOD! (B)",
-            1 => "PASSING (C)",
+            3 => "⭐⭐⭐ PERFECT! (A+)",
+            2 => "⭐⭐ GOOD! (B)",
+            1 => "⭐ PASSING (C)",
             _ => "NO STARS (F)"
         };
 
-        if (ratingText != null) ratingText.text = rating;
+        if (ratingText != null)
+            ratingText.text = rating;
 
+        // Enable/disable next level button
         if (nextLevelButton != null)
             nextLevelButton.interactable = (collectedCount >= minItemsForNextLevel);
     }
@@ -115,7 +189,7 @@ public class LevelManager : MonoBehaviour
     public void ReplayLevel()
     {
         if (TimeManager.Instance != null)
-            TimeManager.Instance.AddRetry();
+            TimeManager.Instance.RetryLevel();
 
         collectedCount = 0;
         levelCompleted = false;
@@ -136,5 +210,10 @@ public class LevelManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene("MainMenu");
+    }
+
+    public int GetCollectedCount()
+    {
+        return collectedCount;
     }
 }

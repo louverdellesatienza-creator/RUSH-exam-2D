@@ -301,6 +301,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a3794b1192786447a14da5aabc04302, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenu
+  settingsPanelManager: {fileID: 0}
 --- !u!1 &1186659496
 GameObject:
   m_ObjectHideFlags: 0
@@ -330,11 +331,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c8740ef03ff7ba248b98aa46e5cf7596, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TimeManager
-  currentTime: 0
-  level1Time: 0
-  level2Time: 0
-  retries: 0
-  isPlaying: 0
+  currentLevelTime: 0
+  level1FinalTime: 0
+  level2FinalTime: 0
+  retryCount: 0
+  timerText: {fileID: 0}
+  retryText: {fileID: 0}
+  isTiming: 0
 --- !u!4 &1186659498
 Transform:
   m_ObjectHideFlags: 0
@@ -774,7 +777,7 @@ GameObject:
   - component: {fileID: 1526072352}
   - component: {fileID: 1526072351}
   m_Layer: 5
-  m_Name: Canvas
+  m_Name: Canvas_MainMenu
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

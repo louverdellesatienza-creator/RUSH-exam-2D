@@ -8,7 +8,7 @@ public class Obstacle : MonoBehaviour
         if (collision.gameObject.CompareTag("Player"))
         {
             if (TimeManager.Instance != null)
-                TimeManager.Instance.AddRetry();
+                TimeManager.Instance.RetryLevel();  // ← Changed from AddRetry to RetryLevel
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }

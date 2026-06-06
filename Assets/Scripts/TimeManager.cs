@@ -1,25 +1,33 @@
-using UnityEngine;
+﻿using UnityEngine;
+using TMPro;
 using UnityEngine.SceneManagement;
 
 public class TimeManager : MonoBehaviour
 {
     public static TimeManager Instance;
 
-    // Timer values
-    public float currentTime = 0f;
-    public float level1Time = 0f;
-    public float level2Time = 0f;
-    public int retries = 0;
-    public bool isPlaying = false;
+    [Header("Timing")]
+    public float currentLevelTime = 0f;
+    public float level1FinalTime = 0f;
+    public float level2FinalTime = 0f;
+    public int retryCount = 0;
+
+    [Header("UI")]
+    public TextMeshProUGUI timerText;
+    public TextMeshProUGUI retryText;
+
+    [Header("Status")]
+    public bool isTiming = false;
+
+    private string currentLevel = "";
 
     void Awake()
     {
-        // Singleton pattern
         if (Instance == null)
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            Debug.Log("TimeManager Created!");
+            Debug.Log("=== TimeManager Created ===");
         }
         else
         {
@@ -27,72 +35,129 @@ public class TimeManager : MonoBehaviour
         }
     }
 
-    void Update()
+    void Start()
     {
-        // Only count time if game is playing
-        if (isPlaying)
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        Debug.Log($"Scene loaded: {scene.name}");
+
+        // Find timer UI in the new scene
+        if (timerText == null)
         {
-            currentTime += Time.deltaTime;
+            timerText = FindObjectOfType<TextMeshProUGUI>();
         }
     }
 
-    // Call this when a level starts
-    public void StartLevel()
+    void Update()
     {
-        currentTime = 0f;
-        isPlaying = true;
-        Debug.Log("Timer STARTED!");
+        if (isTiming)
+        {
+            currentLevelTime += Time.deltaTime;
+            UpdateDisplay();
+        }
     }
 
-    // Call this when player dies
-    public void AddRetry()
+    void UpdateDisplay()
     {
-        retries++;
-        currentTime = 0f;
-        isPlaying = true;
-        Debug.Log($"RETRY #{retries} - Timer reset");
+        if (timerText != null)
+            timerText.text = $"TIME: {FormatTime(currentLevelTime)}";
+
+        if (retryText != null)
+            retryText.text = $"RETRIES: {retryCount}";
     }
 
-    // Call this when level is completed
+    public void StartLevel(string levelName)
+    {
+        Debug.Log($"=== STARTING TIMER for {levelName} ===");
+        currentLevel = levelName;
+        currentLevelTime = 0f;
+        isTiming = true;
+        UpdateDisplay();
+    }
+
+    public void RetryLevel()
+    {
+        retryCount++;
+        currentLevelTime = 0f;
+        isTiming = true;
+        UpdateDisplay();
+        Debug.Log($"⚠️ RETRY #{retryCount} - Timer reset to 0");
+    }
+
     public void CompleteLevel(string levelName)
     {
-        isPlaying = false;
-        Debug.Log($"Level COMPLETE! Time: {currentTime:F2} seconds");
+        isTiming = false;
+        Debug.Log($"✅ Level Complete: {levelName} - Time: {FormatTime(currentLevelTime)}");
 
         if (levelName.Contains("Level1"))
-            level1Time = currentTime;
+            level1FinalTime = currentLevelTime;
         else if (levelName.Contains("Level2"))
-            level2Time = currentTime;
+            level2FinalTime = currentLevelTime;
     }
 
-    // Call this when starting a new game from menu
     public void NewGame()
     {
-        retries = 0;
-        level1Time = 0f;
-        level2Time = 0f;
-        currentTime = 0f;
-        isPlaying = false;
-        Debug.Log("NEW GAME - All stats reset");
+        retryCount = 0;
+        level1FinalTime = 0f;
+        level2FinalTime = 0f;
+        currentLevelTime = 0f;
+        isTiming = false;
+        Debug.Log("🔄 New Game - All stats reset");
     }
 
-    // Get total time for finish screen
-    public float GetTotalTime()
+    public float GetTotalGameTime()
     {
-        return level1Time + level2Time;
+        return level1FinalTime + level2FinalTime;
+    }
+
+    public int GetTotalRetries()
+    {
+        return retryCount;
+    }
+
+    public float GetLevel1Time()
+    {
+        return level1FinalTime;
+    }
+
+    public float GetLevel2Time()
+    {
+        return level2FinalTime;
     }
 
     public string GetGrade()
     {
-        float total = GetTotalTime();
-        float penalty = retries * 2f;
-        float final = total + penalty;
+        float totalTime = GetTotalGameTime();
+        float penaltyTime = retryCount * 2f;
+        float effectiveTime = totalTime + penaltyTime;
 
-        if (final < 30 && retries == 0) return "S+ (SUPERB!)";
-        if (final < 45 && retries <= 1) return "S (EXCELLENT!)";
-        if (final < 60 && retries <= 2) return "A (GREAT!)";
-        if (final < 90 && retries <= 3) return "B (GOOD!)";
-        if (final < 120) return "C (PASSING)";
-        return "D (NEED IMPROVEMENT)";
+        if (effectiveTime < 30f && retryCount == 0)
+            return "S+ (SUPERB!) ⭐⭐⭐⭐⭐";
+        else if (effectiveTime < 45f && retryCount <= 1)
+            return "S (EXCELLENT!) ⭐⭐⭐⭐";
+        else if (effectiveTime < 60f && retryCount <= 2)
+            return "A (GREAT!) ⭐⭐⭐";
+        else if (effectiveTime < 90f && retryCount <= 3)
+            return "B (GOOD!) ⭐⭐";
+        else if (effectiveTime < 120f)
+            return "C (PASSING) ⭐";
+        else
+            return "D (NEED IMPROVEMENT)";
+    }
+
+    string FormatTime(float timeInSeconds)
+    {
+        int minutes = Mathf.FloorToInt(timeInSeconds / 60);
+        int seconds = Mathf.FloorToInt(timeInSeconds % 60);
+        int milliseconds = Mathf.FloorToInt((timeInSeconds * 100) % 100);
+        return $"{minutes:00}:{seconds:00}:{milliseconds:00}";
     }
 }

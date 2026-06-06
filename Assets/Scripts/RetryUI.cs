@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 
 public class RetryUI : MonoBehaviour
@@ -14,7 +14,7 @@ public class RetryUI : MonoBehaviour
     {
         if (TimeManager.Instance != null)
         {
-            textComponent.text = $"RETRIES: {TimeManager.Instance.retries}";
+            textComponent.text = $"RETRIES: {TimeManager.Instance.retryCount}";  // ← Changed from retries to retryCount
         }
     }
 }
