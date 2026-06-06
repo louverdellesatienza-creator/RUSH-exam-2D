@@ -28,7 +28,7 @@ public class LevelManager : MonoBehaviour
     public GameObject playerGirl;
 
     [Header("Settings Panel")]
-    public GameObject settingsCanvas;  // Drag Canvas_Settings here (starts disabled)
+    public GameObject settingsCanvas;
 
     private int collectedCount = 0;
     private bool levelCompleted = false;
@@ -44,7 +44,7 @@ public class LevelManager : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("=== LEVEL MANAGER START ===");
+        Debug.Log($"=== LEVEL MANAGER START - {SceneManager.GetActiveScene().name} ===");
 
         collectedCount = 0;
         levelCompleted = false;
@@ -56,18 +56,39 @@ public class LevelManager : MonoBehaviour
         if (nextLevelButton != null)
             nextLevelButton.interactable = false;
 
-        // Make sure settings panel starts HIDDEN (not auto-show)
+        // Make sure settings panel starts HIDDEN
         if (settingsCanvas != null)
             settingsCanvas.SetActive(false);
 
-        // Apply selected character from SettingsScene
+        // Apply selected character
         ApplySelectedCharacter();
+
+        // Set total collectibles based on level
+        SetLevelCollectibles();
 
         // Start the timer
         if (TimeManager.Instance != null)
             TimeManager.Instance.StartLevel(SceneManager.GetActiveScene().name);
 
-        Debug.Log("Level 1 started - Settings panel will NOT auto-show. Use ⚙️ button to open.");
+        Debug.Log($"Level started - Need to collect {totalCollectibles} items");
+    }
+
+    void SetLevelCollectibles()
+    {
+        string sceneName = SceneManager.GetActiveScene().name;
+
+        if (sceneName == "Level1-outside school" || sceneName == "Level1")
+        {
+            totalCollectibles = 3;
+            minItemsForNextLevel = 3;
+            Debug.Log("Level 1: Need 3 items to unlock next level");
+        }
+        else if (sceneName == "Level2")
+        {
+            totalCollectibles = 5;
+            minItemsForNextLevel = 3;
+            Debug.Log("Level 2: Need 5 items for perfect, 3 to pass");
+        }
     }
 
     void ApplySelectedCharacter()
@@ -88,16 +109,15 @@ public class LevelManager : MonoBehaviour
 
         Debug.Log("Opening settings panel");
         isSettingsOpen = true;
-        Time.timeScale = 0f; // Pause game
+        Time.timeScale = 0f;
 
         if (settingsCanvas != null)
         {
             settingsCanvas.SetActive(true);
-            Debug.Log("Settings panel opened");
         }
         else
         {
-            Debug.LogError("Settings Canvas is NULL! Assign it in Inspector.");
+            Debug.LogError("Settings Canvas is NULL!");
         }
     }
 
@@ -105,14 +125,13 @@ public class LevelManager : MonoBehaviour
     {
         Debug.Log("Closing settings panel");
         isSettingsOpen = false;
-        Time.timeScale = 1f; // Resume game
+        Time.timeScale = 1f;
 
         if (settingsCanvas != null)
         {
             settingsCanvas.SetActive(false);
         }
 
-        // Re-apply character in case it was changed
         ApplySelectedCharacter();
     }
 
@@ -138,7 +157,6 @@ public class LevelManager : MonoBehaviour
         if (collectibleText != null)
             collectibleText.text = $"Items: {collectedCount}/{totalCollectibles}";
 
-        // Update stars
         if (star1 != null) star1.SetActive(collectedCount >= 1);
         if (star2 != null) star2.SetActive(collectedCount >= 2);
         if (star3 != null) star3.SetActive(collectedCount >= 3);
@@ -178,12 +196,44 @@ public class LevelManager : MonoBehaviour
             _ => "NO STARS (F)"
         };
 
+        // For Level 2 with 5 items
+        if (totalCollectibles == 5)
+        {
+            rating = collectedCount switch
+            {
+                5 => "⭐⭐⭐⭐⭐ PERFECT! (A+)",
+                4 => "⭐⭐⭐⭐ GREAT! (A)",
+                3 => "⭐⭐⭐ GOOD! (B)",
+                2 => "⭐⭐ PASSING (C)",
+                _ => "⭐ NEED IMPROVEMENT (F)"
+            };
+        }
+
         if (ratingText != null)
             ratingText.text = rating;
 
-        // Enable/disable next level button
+        // Enable next level button if enough items collected
         if (nextLevelButton != null)
             nextLevelButton.interactable = (collectedCount >= minItemsForNextLevel);
+
+        // Check if this is Level 2 (final level)
+        string currentScene = SceneManager.GetActiveScene().name;
+        if (currentScene == "Level2")
+        {
+            // Change Next Level button to go to Finish Screen
+            if (nextLevelButton != null)
+            {
+                nextLevelButton.onClick.RemoveAllListeners();
+                nextLevelButton.onClick.AddListener(GoToFinish);
+                nextLevelButton.interactable = (collectedCount >= minItemsForNextLevel);
+            }
+        }
+    }
+
+    void GoToFinish()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("Finish");
     }
 
     public void ReplayLevel()
