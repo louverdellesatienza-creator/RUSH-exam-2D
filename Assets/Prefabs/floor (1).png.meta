@@ -129,12 +129,12 @@ TextureImporter:
       name: floor (1)_0
       rect:
         serializedVersion: 2
-        x: 6
-        y: 7
-        width: 219
-        height: 252
+        x: 14
+        y: 14
+        width: 203
+        height: 238
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -151,7 +151,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 50feaba242753d44e85dbcb7503c6800
     internalID: 0
     vertices: []
     indices: 

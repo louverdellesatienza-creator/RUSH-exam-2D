@@ -286,11 +286,11 @@ public class LevelManager : MonoBehaviour
         // For 5 items per level
         return collectedCount switch
         {
-            5 => "⭐⭐⭐⭐⭐ PERFECT! (A+)",
-            4 => "⭐⭐⭐⭐ GREAT! (A)",
-            3 => "⭐⭐⭐ GOOD! (B)",
-            2 => "⭐⭐ PASSING (C)",
-            _ => "⭐ NEED IMPROVEMENT (F)"
+            5 => "PERFECT! (A+)",
+            4 => "GREAT! (A)",
+            3 => "GOOD! (B)",
+            2 => "PASSING (C)",
+            _ => "NEED IMPROVEMENT (F)"
         };
     }
 
