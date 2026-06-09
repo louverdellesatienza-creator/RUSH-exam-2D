@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Obstacle
   - Collectible
+  - Door
   layers:
   - Default
   - TransparentFX
@@ -13,9 +14,9 @@ TagManager:
   - UI design
   - Water
   - UI
+  - Player
   - Ground
-  - 
-  - 
+  - Obstacle
   - 
   - 
   - 
@@ -42,6 +43,12 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: StatsPanel
+    uniqueID: 3436186347
+    locked: 0
+  - name: Panel
+    uniqueID: 2622812203
     locked: 0
   m_RenderingLayers:
   - Default

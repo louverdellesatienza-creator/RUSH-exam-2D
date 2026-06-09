@@ -8,9 +8,9 @@ public class LevelManager : MonoBehaviour
     public static LevelManager Instance;
 
     [Header("Level Settings")]
-    public int totalCollectibles = 5;  // 5 items per level
+    public int totalCollectibles = 5;
     public string nextLevelName = "Level2";
-    public int minItemsForNextLevel = 3;  // Only need 3 to pass
+    public int minItemsForNextLevel = 3;
 
     [Header("UI References")]
     public TextMeshProUGUI collectibleText;
@@ -18,15 +18,15 @@ public class LevelManager : MonoBehaviour
     public TextMeshProUGUI itemsText;
     public TextMeshProUGUI ratingText;
     public TextMeshProUGUI timeText;
-    public GameObject star1, star2, star3, star4, star5;  // 5 stars for 5 items
+    public GameObject star1, star2, star3, star4, star5;
     public Button nextLevelButton;
     public Button replayButton;
     public Button quitButton;
 
     [Header("Color Settings")]
-    public Color passingColor = Color.green;      // Color when 3+ items
-    public Color notPassingColor = Color.red;     // Color when 0-2 items
-    public Color defaultColor = Color.white;      // Default color
+    public Color passingColor = Color.green;
+    public Color notPassingColor = Color.red;
+    public Color defaultColor = Color.white;
 
     [Header("Player References")]
     public GameObject playerBoy;
@@ -44,6 +44,11 @@ public class LevelManager : MonoBehaviour
 
     void Awake()
     {
+        // FIX 1: Always force timeScale back to 1 the moment this scene loads.
+        // CompleteLevel() and OpenSettings() both set timeScale=0 but scene loading
+        // does NOT reset it — so Level1 loads frozen if you came from a completed/paused state.
+        Time.timeScale = 1f;
+
         if (Instance == null)
             Instance = this;
         else
@@ -52,11 +57,18 @@ public class LevelManager : MonoBehaviour
 
     void Start()
     {
-        // ⭐ CRITICAL: Reset for each new level
         collectedCount = 0;
         levelCompleted = false;
 
         Debug.Log($"=== LEVEL MANAGER START - {SceneManager.GetActiveScene().name} ===");
+        Debug.Log($"Time.timeScale on Start = {Time.timeScale}"); // Should always be 1 now
+
+        StartCoroutine(DelayedStart());
+    }
+
+    System.Collections.IEnumerator DelayedStart()
+    {
+        yield return null; // Wait one frame for scene to fully settle
 
         UpdateUI();
 
@@ -66,32 +78,41 @@ public class LevelManager : MonoBehaviour
         if (nextLevelButton != null)
             nextLevelButton.interactable = false;
 
-        // Make sure settings panel starts HIDDEN
         if (settingsCanvas != null)
             settingsCanvas.SetActive(false);
 
-        // Hide message if exists
         if (notEnoughItemsMessage != null)
             notEnoughItemsMessage.SetActive(false);
 
-        // Apply selected character
         ApplySelectedCharacter();
-
-        // Set total collectibles based on level
         SetLevelCollectibles();
 
-        // Start the timer
+        // FIX 2: Removed the 30-frame spin-wait for TimeManager.
+        // If TimeManager uses DontDestroyOnLoad it's already alive in Awake/Start order.
+        // If it doesn't exist yet, waiting 30 frames just delays the start visibly (the "stuck" feeling).
+        // Instead: try immediately, and if null, log a clear error so you know to fix the setup.
         if (TimeManager.Instance != null)
+        {
             TimeManager.Instance.StartLevel(SceneManager.GetActiveScene().name);
-
-        Debug.Log($"Level started - Need to collect {totalCollectibles} items, {minItemsForNextLevel} required to pass");
+            Debug.Log($"✅ Level started — need {minItemsForNextLevel}/{totalCollectibles} items to pass");
+        }
+        else
+        {
+            // TimeManager is missing entirely — log exactly where to fix it
+            Debug.LogError(
+                "❌ TimeManager.Instance is NULL when Level started!\n" +
+                "Fix: Make sure TimeManager is in your MainMenu scene (or an earlier scene) " +
+                "with DontDestroyOnLoad, so it persists into Level1.\n" +
+                "The level will still run, but timing won't be tracked."
+            );
+        }
     }
 
     void SetLevelCollectibles()
     {
         string sceneName = SceneManager.GetActiveScene().name;
 
-        if (sceneName == "Level1-outside school" || sceneName == "Level1")
+        if (sceneName == "Level1" || sceneName == "Level1-outside school")
         {
             totalCollectibles = 5;
             minItemsForNextLevel = 3;
@@ -126,13 +147,9 @@ public class LevelManager : MonoBehaviour
         Time.timeScale = 0f;
 
         if (settingsCanvas != null)
-        {
             settingsCanvas.SetActive(true);
-        }
         else
-        {
             Debug.LogError("Settings Canvas is NULL!");
-        }
     }
 
     public void CloseSettings()
@@ -142,9 +159,7 @@ public class LevelManager : MonoBehaviour
         Time.timeScale = 1f;
 
         if (settingsCanvas != null)
-        {
             settingsCanvas.SetActive(false);
-        }
 
         ApplySelectedCharacter();
     }
@@ -166,39 +181,22 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    void OnEnable()
-    {
-        // Reset when scene loads
-        collectedCount = 0;
-        levelCompleted = false;
-    }
+    // FIX 3: Removed OnEnable() resetting collectedCount and levelCompleted.
+    // OnEnable fires BEFORE Start() when the scene loads — so it was resetting
+    // values that Start() had just initialized, and also firing on every
+    // SetActive(true) call on this GameObject mid-game, silently wiping progress.
+    // Start() already handles initialization; OnEnable() was redundant and harmful.
 
     void UpdateUI()
     {
-        // Update text display (X/5 format)
         if (collectibleText != null)
         {
             collectibleText.text = $"Items: {collectedCount}/{totalCollectibles}";
-
-            // Change color based on collected count
-            if (collectedCount >= minItemsForNextLevel)
-            {
-                // Green - enough items to pass
-                collectibleText.color = passingColor;
-            }
-            else if (collectedCount > 0)
-            {
-                // Red - not enough items yet
-                collectibleText.color = notPassingColor;
-            }
-            else
-            {
-                // White - no items collected
-                collectibleText.color = defaultColor;
-            }
+            collectibleText.color = collectedCount >= minItemsForNextLevel ? passingColor
+                                  : collectedCount > 0 ? notPassingColor
+                                                                           : defaultColor;
         }
 
-        // Update 5 stars
         if (star1 != null) star1.SetActive(collectedCount >= 1);
         if (star2 != null) star2.SetActive(collectedCount >= 2);
         if (star3 != null) star3.SetActive(collectedCount >= 3);
@@ -226,7 +224,6 @@ public class LevelManager : MonoBehaviour
     {
         if (levelCompleted) return;
 
-        // Check if player has enough items to complete
         if (collectedCount < minItemsForNextLevel)
         {
             Debug.Log($"Cannot complete level! Need {minItemsForNextLevel} items, only have {collectedCount}");
@@ -239,9 +236,7 @@ public class LevelManager : MonoBehaviour
         if (TimeManager.Instance != null)
             TimeManager.Instance.CompleteLevel(SceneManager.GetActiveScene().name);
 
-        // SAVE RATING FOR FINISH SCREEN
         SaveLevelRating();
-
         Time.timeScale = 0f;
 
         if (canvas_LevelComplete != null)
@@ -258,17 +253,12 @@ public class LevelManager : MonoBehaviour
             timeText.text = $"Time: {minutes:00}:{seconds:00}";
         }
 
-        // Update rating based on collected items
-        string rating = GetRatingText();
-
         if (ratingText != null)
-            ratingText.text = rating;
+            ratingText.text = GetRatingText();
 
-        // Enable next level button if enough items collected
         if (nextLevelButton != null)
             nextLevelButton.interactable = (collectedCount >= minItemsForNextLevel);
 
-        // Check if this is Level 2 (final level)
         string currentScene = SceneManager.GetActiveScene().name;
         if (currentScene == "Level2")
         {
@@ -283,7 +273,6 @@ public class LevelManager : MonoBehaviour
 
     string GetRatingText()
     {
-        // For 5 items per level
         return collectedCount switch
         {
             5 => "PERFECT! (A+)",

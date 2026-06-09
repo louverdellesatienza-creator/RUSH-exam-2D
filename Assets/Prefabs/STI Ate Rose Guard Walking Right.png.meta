@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: c124dc9bc3d195c4c93995ed5c30de43
+guid: 831077891e505af4c884b3b10034b4a1
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4915208854406663301
-    second: STI Ate Rose Guard Walking Left_0
+      213: -4628441984906752298
+    second: STI Ate Rose Guard Walking Right_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,12 +126,12 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: STI Ate Rose Guard Walking Left_0
+      name: STI Ate Rose Guard Walking Right_0
       rect:
         serializedVersion: 2
-        x: 95
-        y: 17
-        width: 159
+        x: 140
+        y: 11
+        width: 157
         height: 331
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b737c3cb69ba9cbb0800000000000000
-      internalID: -4915208854406663301
+      spriteID: 6de012a898874cfb0800000000000000
+      internalID: -4628441984906752298
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      STI Ate Rose Guard Walking Left_0: -4915208854406663301
+      STI Ate Rose Guard Walking Right_0: -4628441984906752298
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

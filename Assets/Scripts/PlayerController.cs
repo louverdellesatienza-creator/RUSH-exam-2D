@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
@@ -10,9 +11,9 @@ public class PlayerController : MonoBehaviour
     public float airControl = 0.3f;
 
     [Header("Boundaries")]
-    public float leftBoundary = -8f;   // Left edge
-    public float rightBoundary = 8f;   // Right edge
-    public bool useCameraBounds = true; // Auto-detect camera bounds
+    public float leftBoundary = -8f;
+    public float rightBoundary = 8f;
+    public bool useCameraBounds = true;
 
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -29,6 +30,7 @@ public class PlayerController : MonoBehaviour
     private Camera mainCamera;
     private float cameraLeft;
     private float cameraRight;
+    private bool hasTriggeredReload = false; // ← Prevents double scene reload
 
     void Start()
     {
@@ -36,7 +38,6 @@ public class PlayerController : MonoBehaviour
         originalScale = transform.localScale;
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
 
-        // Get camera boundaries
         mainCamera = Camera.main;
         UpdateCameraBounds();
 
@@ -45,17 +46,15 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        // === MOVEMENT ===
         float moveInput = Input.GetAxisRaw("Horizontal");
 
-        if (isGrounded)
-        {
-            rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
-        }
-        else
-        {
-            rb.linearVelocity = new Vector2(moveInput * moveSpeed * airControl, rb.linearVelocity.y);
-        }
+        // === GROUND CHECK (do this first so jump check is accurate) ===
+        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+
+        // === HORIZONTAL MOVEMENT ===
+        // FIX: Only override X velocity, never touch Y — preserves jump arc cleanly
+        float targetX = moveInput * moveSpeed * (isGrounded ? 1f : airControl);
+        rb.linearVelocity = new Vector2(targetX, rb.linearVelocity.y);
 
         // === FLIP SPRITE ===
         if (moveInput > 0)
@@ -63,23 +62,22 @@ public class PlayerController : MonoBehaviour
         else if (moveInput < 0)
             transform.localScale = new Vector3(-Mathf.Abs(originalScale.x), originalScale.y, originalScale.z);
 
-        // === GROUND CHECK ===
-        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-
         // === JUMP ===
         if ((Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.Space)) && isGrounded)
         {
+            // FIX: Set Y velocity directly for a snappy, consistent jump height
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         }
 
         // === BETTER FALL PHYSICS ===
+        // FIX: Applied via AddForce instead of direct velocity mutation to avoid fighting the engine
         if (rb.linearVelocity.y < 0)
         {
-            rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
+            rb.AddForce(Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * rb.mass * Time.deltaTime, ForceMode2D.Impulse);
         }
         else if (rb.linearVelocity.y > 0 && !Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.UpArrow) && !Input.GetKey(KeyCode.Space))
         {
-            rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * Time.deltaTime;
+            rb.AddForce(Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * rb.mass * Time.deltaTime, ForceMode2D.Impulse);
         }
 
         // === CONTAIN PLAYER WITHIN BOUNDARIES ===
@@ -90,20 +88,14 @@ public class PlayerController : MonoBehaviour
     {
         if (mainCamera != null)
         {
-            // Calculate camera edges in world space
             float cameraHeight = 2f * mainCamera.orthographicSize;
             float cameraWidth = cameraHeight * mainCamera.aspect;
 
-            cameraLeft = mainCamera.transform.position.x - cameraWidth / 2;
-            cameraRight = mainCamera.transform.position.x + cameraWidth / 2;
-
-            // Add small padding (optional)
-            cameraLeft += 0.5f;
-            cameraRight -= 0.5f;
+            cameraLeft = mainCamera.transform.position.x - cameraWidth / 2 + 0.5f;
+            cameraRight = mainCamera.transform.position.x + cameraWidth / 2 - 0.5f;
         }
         else
         {
-            // Fallback manual boundaries
             cameraLeft = leftBoundary;
             cameraRight = rightBoundary;
         }
@@ -113,29 +105,20 @@ public class PlayerController : MonoBehaviour
     {
         Vector3 pos = transform.position;
 
-        // Update camera bounds in case camera moves
         if (useCameraBounds && mainCamera != null)
-        {
             UpdateCameraBounds();
-        }
 
-        // Check left boundary
         if (pos.x < cameraLeft)
         {
             pos.x = cameraLeft;
             transform.position = pos;
-
-            // Stop horizontal movement when hitting boundary
             rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
         }
 
-        // Check right boundary
         if (pos.x > cameraRight)
         {
             pos.x = cameraRight;
             transform.position = pos;
-
-            // Stop horizontal movement when hitting boundary
             rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
         }
     }
@@ -144,14 +127,16 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Obstacle"))
         {
-            Debug.Log($"Hit obstacle: {collision.gameObject.name} - Resetting level!");
+            // FIX: Guard flag so only one script triggers the reload, not both
+            if (hasTriggeredReload) return;
+            hasTriggeredReload = true;
+
+            Debug.Log($"⚠️ PLAYER CONTROLLER - Hit obstacle: {collision.gameObject.name}");
 
             if (TimeManager.Instance != null)
                 TimeManager.Instance.RetryLevel();
 
-            UnityEngine.SceneManagement.SceneManager.LoadScene(
-                UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
-            );
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }
 
@@ -167,14 +152,12 @@ public class PlayerController : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        // Visualize ground check
         if (groundCheck != null)
         {
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
 
-        // Visualize boundaries
         Gizmos.color = Color.yellow;
 
         if (mainCamera != null && useCameraBounds)

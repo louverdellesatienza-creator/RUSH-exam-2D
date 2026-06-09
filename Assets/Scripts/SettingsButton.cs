@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class SettingsButton : MonoBehaviour
+public class SettingsButton : MonoBehaviour, IPointerClickHandler
 {
     private Button button;
 
@@ -9,18 +10,19 @@ public class SettingsButton : MonoBehaviour
     {
         button = GetComponent<Button>();
 
-        if (button != null)
+        // Ensure Raycast Target is enabled on the Image
+        Image img = GetComponent<Image>();
+        if (img != null && !img.raycastTarget)
         {
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(OpenSettings);
+            img.raycastTarget = true;
+            Debug.Log("Enabled Raycast Target on Settings Button");
         }
     }
 
-    void OpenSettings()
+    public void OnPointerClick(PointerEventData eventData)
     {
         Debug.Log("Settings button clicked!");
 
-        // Call LevelManager to open settings
         if (LevelManager.Instance != null)
         {
             LevelManager.Instance.OpenSettings();

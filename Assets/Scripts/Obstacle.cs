@@ -7,8 +7,10 @@ public class Obstacle : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Player"))
         {
+            Debug.Log($"REGULAR OBSTACLE - Resetting level!");
+
             if (TimeManager.Instance != null)
-                TimeManager.Instance.RetryLevel();  // ← Changed from AddRetry to RetryLevel
+                TimeManager.Instance.RetryLevel();
 
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }

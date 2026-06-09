@@ -21,38 +21,85 @@ public class TimeManager : MonoBehaviour
 
     private string currentLevel = "";
 
+    // Per-object flag — tells OnDestroy whether THIS object subscribed to sceneLoaded.
+    // Safer than checking Instance==this because Instance can be overwritten before
+    // OnDestroy fires (which was exactly what caused "Real instance destroyed" on duplicates).
+    private bool isRealInstance = false;
+
     void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
+            isRealInstance = true;
             DontDestroyOnLoad(gameObject);
-            Debug.Log("=== TimeManager Created ===");
+
+            // Subscribe in Awake (not Start) so it's set up before any scene logic runs,
+            // and is never accidentally removed by a duplicate's OnDestroy.
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+
+            Debug.Log("=== TimeManager Created & sceneLoaded subscribed ===");
         }
         else
         {
+            // isRealInstance stays false — OnDestroy will not touch sceneLoaded.
+            Debug.Log("[TimeManager] Duplicate detected — destroying, keeping original.");
             Destroy(gameObject);
         }
     }
 
-    void Start()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
-
     void OnDestroy()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
+        // Only unsubscribe if THIS object was the one that subscribed.
+        // Duplicates never subscribed (isRealInstance=false), so they must never
+        // unsubscribe — doing so would remove the real instance's listener.
+        if (isRealInstance)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            Debug.Log("[TimeManager] Real instance destroyed — unsubscribed sceneLoaded.");
+        }
+        else
+        {
+            Debug.Log("[TimeManager] Duplicate destroyed — sceneLoaded untouched.");
+        }
     }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        Debug.Log($"Scene loaded: {scene.name}");
+        Debug.Log($"[TimeManager] Scene loaded: {scene.name} | isTiming={isTiming}");
 
-        // Find timer UI in the new scene
-        if (timerText == null)
+        // Clear stale UI refs and find new ones in the loaded scene
+        timerText = null;
+        retryText = null;
+        FindTimerUI();
+
+        // Stop timing on non-game scenes
+        if (scene.name == "MainMenu" || scene.name == "Finish")
         {
-            timerText = FindObjectOfType<TextMeshProUGUI>();
+            isTiming = false;
+            Debug.Log($"[TimeManager] Stopped timing on {scene.name}");
+        }
+    }
+
+    void FindTimerUI()
+    {
+        TimerUI timerUI = FindObjectOfType<TimerUI>();
+        if (timerUI != null)
+        {
+            timerText = timerUI.GetComponent<TextMeshProUGUI>();
+            Debug.Log("[TimeManager] TimerUI found and connected");
+        }
+        else
+        {
+            Debug.Log("[TimeManager] No TimerUI in this scene (OK for MainMenu/Finish)");
+        }
+
+        RetryUI retryUI = FindObjectOfType<RetryUI>();
+        if (retryUI != null)
+        {
+            retryText = retryUI.GetComponent<TextMeshProUGUI>();
+            Debug.Log("[TimeManager] RetryUI found and connected");
         }
     }
 
@@ -76,7 +123,7 @@ public class TimeManager : MonoBehaviour
 
     public void StartLevel(string levelName)
     {
-        Debug.Log($"=== STARTING TIMER for {levelName} ===");
+        Debug.Log($"[TimeManager] Starting timer for {levelName}");
         currentLevel = levelName;
         currentLevelTime = 0f;
         isTiming = true;
@@ -89,13 +136,13 @@ public class TimeManager : MonoBehaviour
         currentLevelTime = 0f;
         isTiming = true;
         UpdateDisplay();
-        Debug.Log($"⚠️ RETRY #{retryCount} - Timer reset to 0");
+        Debug.Log($"[TimeManager] RETRY #{retryCount} — timer reset");
     }
 
     public void CompleteLevel(string levelName)
     {
         isTiming = false;
-        Debug.Log($"✅ Level Complete: {levelName} - Time: {FormatTime(currentLevelTime)}");
+        Debug.Log($"[TimeManager] Level complete: {levelName} — Time: {FormatTime(currentLevelTime)}");
 
         if (levelName.Contains("Level1"))
             level1FinalTime = currentLevelTime;
@@ -110,47 +157,24 @@ public class TimeManager : MonoBehaviour
         level2FinalTime = 0f;
         currentLevelTime = 0f;
         isTiming = false;
-        Debug.Log("🔄 New Game - All stats reset");
+        Debug.Log("[TimeManager] New game — all stats reset");
     }
 
-    public float GetTotalGameTime()
-    {
-        return level1FinalTime + level2FinalTime;
-    }
-
-    public int GetTotalRetries()
-    {
-        return retryCount;
-    }
-
-    public float GetLevel1Time()
-    {
-        return level1FinalTime;
-    }
-
-    public float GetLevel2Time()
-    {
-        return level2FinalTime;
-    }
+    public float GetTotalGameTime() => level1FinalTime + level2FinalTime;
+    public int GetTotalRetries() => retryCount;
+    public float GetLevel1Time() => level1FinalTime;
+    public float GetLevel2Time() => level2FinalTime;
 
     public string GetGrade()
     {
-        float totalTime = GetTotalGameTime();
-        float penaltyTime = retryCount * 2f;
-        float effectiveTime = totalTime + penaltyTime;
+        float effectiveTime = GetTotalGameTime() + retryCount * 2f;
 
-        if (effectiveTime < 30f && retryCount == 0)
-            return "S+ (SUPERB!) ⭐⭐⭐⭐⭐";
-        else if (effectiveTime < 45f && retryCount <= 1)
-            return "S (EXCELLENT!) ⭐⭐⭐⭐";
-        else if (effectiveTime < 60f && retryCount <= 2)
-            return "A (GREAT!) ⭐⭐⭐";
-        else if (effectiveTime < 90f && retryCount <= 3)
-            return "B (GOOD!) ⭐⭐";
-        else if (effectiveTime < 120f)
-            return "C (PASSING) ⭐";
-        else
-            return "D (NEED IMPROVEMENT)";
+        if (effectiveTime < 30f && retryCount == 0) return "S+ (SUPERB!)";
+        else if (effectiveTime < 45f && retryCount <= 1) return "S (EXCELLENT!)";
+        else if (effectiveTime < 60f && retryCount <= 2) return "A (GREAT!)";
+        else if (effectiveTime < 90f && retryCount <= 3) return "B (GOOD!)";
+        else if (effectiveTime < 120f) return "C (PASSING)";
+        else return "D (NEED IMPROVEMENT)";
     }
 
     string FormatTime(float timeInSeconds)

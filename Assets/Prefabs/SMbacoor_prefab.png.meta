@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 270cfc11de81c1d4aae3a9da228db4dc
+guid: fca0984cd7e6f7e44b767265ec1c19a3
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1049415405275371276
-    second: STI Ate Rose Guard_0
+      213: 1391909335978218676
+    second: SMbacoor_prefab_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -126,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: STI Ate Rose Guard_0
+      name: SMbacoor_prefab_0
       rect:
         serializedVersion: 2
-        x: 414
-        y: 4
-        width: 271
-        height: 618
+        x: 0
+        y: 0
+        width: 499
+        height: 394
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,8 +141,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 4f82dbabf3abf61f0800000000000000
-      internalID: -1049415405275371276
+      spriteID: 4b4188a9a2e015310800000000000000
+      internalID: 1391909335978218676
       vertices: []
       indices: 
       edges: []
@@ -161,7 +161,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      STI Ate Rose Guard_0: -1049415405275371276
+      SMbacoor_prefab_0: 1391909335978218676
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

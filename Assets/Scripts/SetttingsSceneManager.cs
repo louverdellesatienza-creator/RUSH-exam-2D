@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
@@ -211,28 +211,19 @@ public class SettingsSceneManager : MonoBehaviour
 
     void OnDone()
     {
-        Debug.Log("=== DONE BUTTON CLICKED ===");
-
-        // Save character selection
         PlayerPrefs.SetString("SelectedCharacter", selectedCharacter);
         PlayerPrefs.Save();
 
-        // Update GameManager if it exists
         if (GameManager.Instance != null)
-        {
             GameManager.Instance.selectedCharacter = selectedCharacter;
-            Debug.Log("GameManager updated with character: " + selectedCharacter);
-        }
 
-        Debug.Log($"Starting Level 1 with character: {selectedCharacter}");
-
-        // Load Level 1 scene
-        SceneManager.LoadScene("Level1-outside school");
+        Debug.Log($"Done! Starting Level 1 with {selectedCharacter}");
+        SceneManager.LoadScene("Level1");  // ← Changed to "Level1"
     }
 
     void OnCancel()
     {
-        Debug.Log("Cancel clicked! Returning to Main Menu");
+        Debug.Log("Cancelled! Returning to Main Menu");
         SceneManager.LoadScene("MainMenu");
     }
 }
