@@ -30,6 +30,8 @@ public class SettingsPanelManager : MonoBehaviour
 
     void Start()
     {
+        Debug.Log("=== SettingsPanelManager Start ===");
+
         LoadPreferences();
         SetupButtons();
         ShowPage(0);
@@ -56,19 +58,38 @@ public class SettingsPanelManager : MonoBehaviour
     {
         Debug.Log("=== Setting up Settings Panel Manager ===");
 
+        // DEBUG: Check if buttons are assigned
+        Debug.Log($"Boy Button assigned? {(boyButton != null ? "YES" : "NO")}");
+        Debug.Log($"Girl Button assigned? {(girlButton != null ? "YES" : "NO")}");
+        Debug.Log($"Close Button assigned? {(closeButton != null ? "YES" : "NO")}");
+
         // Character selection buttons
         if (boyButton != null)
         {
             boyButton.onClick.RemoveAllListeners();
-            boyButton.onClick.AddListener(() => SelectCharacter("Boy"));
-            Debug.Log("BoyButton configured");
+            boyButton.onClick.AddListener(() => {
+                Debug.Log("🔵🔵🔵 BOY BUTTON WAS PRESSED! 🔵🔵🔵");
+                SelectCharacter("Boy");
+            });
+            Debug.Log("BoyButton configured - Listener added");
+        }
+        else
+        {
+            Debug.LogError("BoyButton is NULL! Cannot add listener.");
         }
 
         if (girlButton != null)
         {
             girlButton.onClick.RemoveAllListeners();
-            girlButton.onClick.AddListener(() => SelectCharacter("Girl"));
-            Debug.Log("GirlButton configured");
+            girlButton.onClick.AddListener(() => {
+                Debug.Log("🟡🟡🟡 GIRL BUTTON WAS PRESSED! 🟡🟡🟡");
+                SelectCharacter("Girl");
+            });
+            Debug.Log("GirlButton configured - Listener added");
+        }
+        else
+        {
+            Debug.LogError("GirlButton is NULL! Cannot add listener.");
         }
 
         // Navigation buttons (top navigation)
@@ -89,8 +110,15 @@ public class SettingsPanelManager : MonoBehaviour
         if (closeButton != null)
         {
             closeButton.onClick.RemoveAllListeners();
-            closeButton.onClick.AddListener(ClosePanel);
-            Debug.Log("CloseButton configured");
+            closeButton.onClick.AddListener(() => {
+                Debug.Log("❌❌❌ CLOSE BUTTON WAS PRESSED! ❌❌❌");
+                ClosePanel();
+            });
+            Debug.Log("CloseButton configured - Listener added");
+        }
+        else
+        {
+            Debug.LogError("CloseButton is NULL! Cannot add listener.");
         }
 
         Debug.Log("=== Settings Panel Setup Complete ===");
@@ -98,27 +126,49 @@ public class SettingsPanelManager : MonoBehaviour
 
     void SelectCharacter(string character)
     {
-        Debug.Log($"Character selected: {character}");
+        Debug.Log($"!!! SelectCharacter called with: {character} !!!");
         selectedCharacter = character;
         UpdateCharacterDisplay();
         SavePreferences();
 
         if (GameManager.Instance != null)
             GameManager.Instance.selectedCharacter = character;
+
+        Debug.Log($"Character is now set to: {selectedCharacter}");
     }
 
     void UpdateCharacterDisplay()
     {
+        Debug.Log($"UpdateCharacterDisplay called. Selected: {selectedCharacter}");
+
         // Update preview image
         if (characterPreview != null)
         {
-            characterPreview.sprite = selectedCharacter == "Boy" ? boySprite : girlSprite;
+            if (selectedCharacter == "Boy" && boySprite != null)
+            {
+                characterPreview.sprite = boySprite;
+                Debug.Log("Boy sprite applied to preview");
+            }
+            else if (selectedCharacter == "Girl" && girlSprite != null)
+            {
+                characterPreview.sprite = girlSprite;
+                Debug.Log("Girl sprite applied to preview");
+            }
+            else
+            {
+                Debug.LogError($"Sprite is NULL! Boy Sprite: {(boySprite != null)} , Girl Sprite: {(girlSprite != null)}");
+            }
+        }
+        else
+        {
+            Debug.LogError("CharacterPreview Image is NULL!");
         }
 
         // Update status text
         if (selectionStatus != null)
         {
             selectionStatus.text = $"Selected: {selectedCharacter}";
+            Debug.Log($"Status text updated to: Selected: {selectedCharacter}");
         }
 
         // Update button colors
@@ -142,18 +192,15 @@ public class SettingsPanelManager : MonoBehaviour
         currentPage = pageIndex;
         Debug.Log($"Showing page: {pageIndex + 1}/3");
 
-        // Hide all pages
         for (int i = 0; i < pages.Length; i++)
         {
             if (pages[i] != null)
                 pages[i].SetActive(false);
         }
 
-        // Show selected page
         if (pages[currentPage] != null)
             pages[currentPage].SetActive(true);
 
-        // Update navigation button colors
         for (int i = 0; i < navButtons.Length; i++)
         {
             if (navButtons[i] != null)
@@ -164,7 +211,6 @@ public class SettingsPanelManager : MonoBehaviour
             }
         }
 
-        // Update Back/Next button states
         if (backButton != null)
             backButton.interactable = (currentPage > 0);
 
@@ -181,7 +227,6 @@ public class SettingsPanelManager : MonoBehaviour
         }
         else
         {
-            // Wrap to last page
             currentPage = pages.Length - 1;
             ShowPage(currentPage);
         }
@@ -196,7 +241,6 @@ public class SettingsPanelManager : MonoBehaviour
         }
         else
         {
-            // Wrap to first page
             currentPage = 0;
             ShowPage(currentPage);
         }
@@ -210,7 +254,7 @@ public class SettingsPanelManager : MonoBehaviour
         {
             settingsPanel.SetActive(true);
             ShowPage(0);
-            Debug.Log("Settings panel opened");
+            Debug.Log("Settings panel opened - Try clicking buttons now!");
         }
         else
         {
@@ -227,7 +271,6 @@ public class SettingsPanelManager : MonoBehaviour
             settingsPanel.SetActive(false);
             SavePreferences();
 
-            // Notify LevelManager to close settings and resume game
             if (LevelManager.Instance != null)
             {
                 LevelManager.Instance.CloseSettings();
